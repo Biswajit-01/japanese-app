@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View, FlatList, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, FlatList, SafeAreaView, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 
-
-
 const { width } = Dimensions.get('window');
+// Fix card size calculation to respect the 680px web container limit
+const effectiveWidth = Platform.OS === 'web' ? 680 : width;
 const cardMargin = 4;
-const cardSize = (width - 30 - (cardMargin * 10)) / 5; 
+const cardSize = (effectiveWidth - 30 - (cardMargin * 10)) / 5; 
 
 export default function AlphabetScreen() {
   const [selectedTab, setSelectedTab] = useState<'hiragana' | 'katakana' | 'kanji'>('hiragana');
@@ -33,7 +33,7 @@ export default function AlphabetScreen() {
     { kana: 'マ', romaji: 'ma' }, { kana: 'ミ', romaji: 'mi' }, { kana: 'ム', romaji: 'mu' }, { kana: 'メ', romaji: 'me' }, { kana: 'モ', romaji: 'mo' },
     { kana: 'ヤ', romaji: 'ya' }, { kana: '', romaji: '' }, { kana: 'ユ', romaji: 'yu' }, { kana: '', romaji: '' }, { kana: 'ヨ', romaji: 'yo' },
     { kana: 'ラ', romaji: 'ra' }, { kana: 'リ', romaji: 'ri' }, { kana: 'ル', romaji: 'ru' }, { kana: 'レ', romaji: 're' }, { kana: 'ロ', romaji: 'ro' },
-    { kana: 'ワ', romaji: 'wa' }, { kana: '', romaji: '' }, { kana: '', romaji: '' }, { kana: 'ヲ', romaji: 'wo' }, { kana: 'ン', romaji: 'n' },
+    { kana: 'わ', romaji: 'wa' }, { kana: '', romaji: '' }, { kana: '', romaji: '' }, { kana: 'ヲ', romaji: 'wo' }, { kana: 'ン', romaji: 'n' },
   ];
   const kanjiList = [
     { kana: '一', romaji: 'ichi (1)' }, { kana: '二', romaji: 'ni (2)' }, { kana: '三', romaji: 'san (3)' }, { kana: '四', romaji: 'yon (4)' }, { kana: '五', romaji: 'go (5)' },
@@ -46,6 +46,11 @@ export default function AlphabetScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.gridOverlay}>
+        {[...Array(10)].map((_, i) => <View key={`v-${i}`} style={[styles.gridLineVertical, { left: i * 60 }]} />)}
+        {[...Array(25)].map((_, i) => <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 60 }]} />)}
+      </View>
+
       <Text style={styles.header}>Alphabet 🔤</Text>
 
       <View style={styles.tabContainer}>
@@ -76,7 +81,7 @@ export default function AlphabetScreen() {
             <TouchableOpacity 
               activeOpacity={0.8}
               style={styles.cardWrapper}
-              onPress={() => { Speech.stop(); Speech.speak(item.kana, { language: 'ja-JP', rate: 0.4 }); }}
+              onPress={() => { Speech.stop(); Speech.speak(item.kana, { language: 'ja-JP'}); }}
             >
               <View style={styles.cardShadow} />
               <View style={styles.card}>
@@ -92,7 +97,24 @@ export default function AlphabetScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#520D58' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#520D58',
+    ...(Platform.OS === 'web' && {
+      maxWidth: 680,
+      alignSelf: 'center',
+      width: '100%',
+      marginVertical: 20,
+      borderRadius: 24,
+      borderWidth: 4,
+      borderColor: '#000000',
+      overflow: 'hidden',
+      boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+    }),
+  },
+  gridOverlay: { ...StyleSheet.absoluteFillObject, zIndex: -1, opacity: 0.08 },
+  gridLineVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#ffffff' },
+  gridLineHorizontal: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#ffffff' },
   header: { fontSize: 26, fontWeight: '900', textAlign: 'center', marginVertical: 15, color: '#ffffff' },
   tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 20, gap: 8, paddingHorizontal: 10 },
   tabButton: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: '#A7B3B7', borderWidth: 2, borderColor: '#000' },

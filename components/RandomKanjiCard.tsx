@@ -63,7 +63,7 @@ export default function RandomKanjiCard() {
   const speakWord = (text: string) => {
     if (!text) return;
     Speech.stop();
-    Speech.speak(text, { language: 'ja-JP', rate: 0.3 });
+    Speech.speak(text, { language: 'ja-JP'});
   };
 
   return (

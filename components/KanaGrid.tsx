@@ -63,7 +63,7 @@ export default function KanaGrid({ currentSection }: { currentSection: string })
 
     // Instantly cuts off the old word and plays the new one with the clean, default voice
     Speech.stop(); 
-    Speech.speak(word, { language: 'ja-JP', rate: speechRate }); 
+    Speech.speak(word, { language: 'ja-JP'}); 
   };
 
   return (

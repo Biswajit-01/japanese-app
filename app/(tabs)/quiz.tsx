@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Dimensions, Animated } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Dimensions, Animated, Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
-const canvasSize = width - 40;
+const canvasSize = (Platform.OS === 'web' ? 680 : width) - 40;
 
 const hiraganaPool = [
   { kana: 'あ', romaji: 'a', type: 'Hiragana' }, { kana: 'い', romaji: 'i', type: 'Hiragana' }, { kana: 'う', romaji: 'u', type: 'Hiragana' }, { kana: 'え', romaji: 'e', type: 'Hiragana' }, { kana: 'お', romaji: 'o', type: 'Hiragana' },
@@ -55,7 +55,7 @@ export default function QuizScreen() {
     try {
       let soundUri = '';
       if (type === 'correct') {
-        soundUri = 'https://www.myinstants.com/media/sounds/ding.mp3';
+        soundUri = 'https://www.myinstants.com/media/sounds/correct-answer-gameshow.mp3';
       } else if (type === 'wrong') {
         soundUri = 'https://www.myinstants.com/media/sounds/erro.mp3';
       } else {
@@ -134,7 +134,7 @@ export default function QuizScreen() {
       setStreak((prev) => prev + 1);
       playSound('correct');
       Speech.stop();
-      Speech.speak(currentQuestion.kana, { language: 'ja-JP', rate: 0.3 });
+      Speech.speak(currentQuestion.kana, { language: 'ja-JP'});
     } else {
       setStreak(0);
       playSound('wrong');
@@ -165,6 +165,11 @@ export default function QuizScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.gridOverlay}>
+        {[...Array(10)].map((_, i) => <View key={`v-${i}`} style={[styles.gridLineVertical, { left: i * 60 }]} />)}
+        {[...Array(25)].map((_, i) => <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 60 }]} />)}
+      </View>
+
       <Text style={styles.header}>Kana Quiz 🎮</Text>
 
       {/* Section Switcher Tabs */}
@@ -317,7 +322,26 @@ export default function QuizScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#520D58', alignItems: 'center', paddingTop: 10 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#520D58', 
+    alignItems: 'center', 
+    paddingTop: 10,
+    ...(Platform.OS === 'web' && {
+      maxWidth: 680,
+      alignSelf: 'center',
+      width: '100%',
+      marginVertical: 20,
+      borderRadius: 24,
+      borderWidth: 4,
+      borderColor: '#000000',
+      overflow: 'hidden',
+      boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+    }),
+  },
+  gridOverlay: { ...StyleSheet.absoluteFillObject, zIndex: -1, opacity: 0.08 },
+  gridLineVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#ffffff' },
+  gridLineHorizontal: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#ffffff' },
   header: { fontSize: 26, fontWeight: '900', color: '#ffffff', marginBottom: 8 },
 
   tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10, gap: 10, paddingHorizontal: 15 },

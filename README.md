@@ -1,50 +1,53 @@
-# Welcome to your Expo app 👋
+# NihonPath 🇯🇵
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**NihonPath** is a modern, gamified, and fully responsive Japanese language learning application built with **React Native**, **Expo**, **Expo Router**, and **TypeScript**. It is designed to provide a unified experience across mobile devices and desktop web browsers with a vibrant, neo-brutalist retro UI.
 
-## Get started
+---
 
-1. Install dependencies
+## ✨ Features
 
-   ```bash
-   npm install
-   ```
+* **Interactive Home Dashboard**: 
+  * Real-time network status indicator (Online/Offline).
+  * Daily streak tracker persisted locally using AsyncStorage.
+  * Random Kanji teaser widget with audio pronunciation.
+  * Quick access modules for Vocab, Stroke Guides, Drawing, and Quizzes.
+* **Alphabet Section (`/(tabs)`)**: Comprehensive reference grids for **Hiragana**, **Katakana**, and foundational **Kanji** with native text-to-speech audio playback (`expo-speech`).
+* **Vocabularly Dictionary (`/(tabs)/vocab`)**: Filterable JLPT reference table (N5 through N1) featuring instant keyword search across kanji, furigana, romaji, and meanings.
+* **Stroke Guide (`/(tabs)/writing`)**: Detailed step-by-step breakdown of stroke orders for writing Hiragana and Katakana characters correctly.
+* **Trace Pad / Draw (`/(tabs)/draw`)**: An interactive SVG-based drawing canvas enabling users to practice tracing characters with background ghost guides and visual feedback.
+* **Kana Quiz (`/(tabs)/quiz`)**: Gamified multiple-choice quizzes for Hiragana and Katakana with customizable question limits, score tracking, audio sound effects (`expo-av`), and animated victory fireworks summaries.
+* **Master Roadmap (`/roadmap`)**: An immersive timeline guiding learners step-by-step from absolute beginner (N5) to native mastery (N1) with clear milestone checklists.
+* **Responsive Desktop Web View**: Features a centered container box layout with background grid overlays, ensuring it behaves like a polished web app dashboard rather than a stretched mobile screen.
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## 🛠️ Tech Stack & Libraries
 
-In the output, you'll find options to open the app in a
+* **Framework**: React Native / Expo (Expo Router)
+* **Language**: TypeScript
+* **UI & Styling**: React Native StyleSheet, Vector Icons (`@expo/vector-icons`)
+* **Graphics & Canvas**: `react-native-svg`
+* **Audio & Speech**: `expo-speech`, `expo-av`
+* **Storage & Network**: `@react-native-async-storage/async-storage`, `@react-native-community/netinfo`
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 📂 Project Structure
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```text
+NihonPath/
+├── app/
+│   ├── (tabs)/
+│   │   _layout.tsx       # Custom bottom navigation bar (responsive for web)
+│   │   home.tsx          # Main web/mobile dashboard
+│   │   index.tsx         # Alphabet reference screen
+│   │   vocab.tsx         # JLPT Vocabulary dictionary & table
+│   │   writing.tsx       # Stroke guide reference screen
+│   │   draw.tsx          # Interactive SVG tracing canvas
+│   │   quiz.tsx          # Gamified kana quiz module
+│   ├── roadmap.tsx       # Complete N5-N1 master journey roadmap
+│   └── _layout.tsx       # Root layout configuration
+├── assets/
+│   └── vocab.json        # Comprehensive JLPT vocabulary dataset
+└── components/
+    └── RandomKanjiCard.tsx # Daily/Random Kanji display teaser component

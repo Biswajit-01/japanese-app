@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, SafeAreaView, ScrollView, Pressable, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, ScrollView, Pressable, Dimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -79,7 +79,7 @@ export default function RoadmapScreen() {
     <SafeAreaView style={styles.container}>
       {/* Background Grid */}
       <View style={styles.gridOverlay}>
-        {[...Array(10)].map((_, i) => <View key={`v-${i}`} style={[styles.gridLineVertical, { left: i * (width / 5) }]} />)}
+        {[...Array(10)].map((_, i) => <View key={`v-${i}`} style={[styles.gridLineVertical, { left: i * 60 }]} />)}
         {[...Array(35)].map((_, i) => <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 50 }]} />)}
       </View>
 
@@ -163,7 +163,21 @@ export default function RoadmapScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#520D58' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#520D58',
+    ...(Platform.OS === 'web' && {
+      maxWidth: 680,
+      alignSelf: 'center',
+      width: '100%',
+      marginVertical: 20,
+      borderRadius: 24,
+      borderWidth: 4,
+      borderColor: '#000000',
+      overflow: 'hidden',
+      boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+    }),
+  },
   gridOverlay: { ...StyleSheet.absoluteFillObject, zIndex: -1, opacity: 0.08 },
   gridLineVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#ffffff' },
   gridLineHorizontal: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#ffffff' },

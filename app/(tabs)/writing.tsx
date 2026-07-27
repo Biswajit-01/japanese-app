@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View, FlatList, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, SafeAreaView, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 
 export default function WritingScreen() {
@@ -107,6 +107,11 @@ export default function WritingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.gridOverlay}>
+        {[...Array(10)].map((_, i) => <View key={`v-${i}`} style={[styles.gridLineVertical, { left: i * 60 }]} />)}
+        {[...Array(25)].map((_, i) => <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 60 }]} />)}
+      </View>
+
       <Text style={styles.header}>Stroke Guide ✍️</Text>
       <Text style={styles.subHeader}>Tap any character card to hear its pronunciation.</Text>
 
@@ -137,7 +142,7 @@ export default function WritingScreen() {
           <TouchableOpacity 
             activeOpacity={0.9}
             style={styles.cardWrapper}
-            onPress={() => { Speech.stop(); Speech.speak(item.kana, { language: 'ja-JP', rate: 0.3 }); }}
+            onPress={() => { Speech.stop(); Speech.speak(item.kana, { language: 'ja-JP'}); }}
           >
             <View style={styles.cardShadow} />
             <View style={styles.card}>
@@ -163,7 +168,24 @@ export default function WritingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#520D58' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#520D58',
+    ...(Platform.OS === 'web' && {
+      maxWidth: 680,
+      alignSelf: 'center',
+      width: '100%',
+      marginVertical: 20,
+      borderRadius: 24,
+      borderWidth: 4,
+      borderColor: '#000000',
+      overflow: 'hidden',
+      boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+    }),
+  },
+  gridOverlay: { ...StyleSheet.absoluteFillObject, zIndex: -1, opacity: 0.08 },
+  gridLineVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#ffffff' },
+  gridLineHorizontal: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#ffffff' },
   header: { fontSize: 26, fontWeight: '900', textAlign: 'center', marginTop: 15, color: '#ffffff' },
   subHeader: { fontSize: 13, color: '#9DEEE9', textAlign: 'center', fontWeight: 'bold', paddingHorizontal: 20, marginBottom: 15, letterSpacing: 0.5 },
   

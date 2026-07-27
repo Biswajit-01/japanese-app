@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -81,6 +81,10 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Explicitly hide template tabs */}
+      <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="glasscard" options={{ href: null }} />
     </Tabs>
   );
 }
@@ -96,7 +100,6 @@ const styles = StyleSheet.create({
     height: 70,
     borderWidth: 4,
     borderColor: '#000000',
-    // Chunky Neubrutalist Drop Shadow
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 6 },
     shadowOpacity: 1,
@@ -104,6 +107,12 @@ const styles = StyleSheet.create({
     elevation: 8,
     paddingBottom: 8,
     paddingTop: 8,
+    // Constrain and center the tab bar on web view to match the app card width
+    ...(Platform.OS === 'web' && {
+      maxWidth: 680,
+      left: '50%',
+      transform: [{ translateX: '-50%' }],
+    }),
   },
   tabItem: {
     paddingTop: 4,
@@ -122,7 +131,6 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
-    // Small icon shadow effect
     shadowColor: '#000',
     shadowOffset: { width: 1, height: 2 },
     shadowOpacity: 1,

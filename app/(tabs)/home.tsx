@@ -1,6 +1,6 @@
 import RandomKanjiCard from '../../components/RandomKanjiCard';
 import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, Pressable, ScrollView, Dimensions, Animated } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, Pressable, ScrollView, Dimensions, Animated, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import NetInfo from '@react-native-community/netinfo';
@@ -14,11 +14,6 @@ export default function HomeScreen() {
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [streak, setStreak] = useState<number>(1);
   const fadeAnim = useRef(new Animated.Value(1)).current;
-
-  const factsList = [
-    { english: "Kyoto served as the imperial capital of Japan for over 1,000 years, from 794 to 1868.", japanese: "京都は794年から1868年まで1,000年以上にわたり日本の首都でした。" },
-    { english: "A recent recount revealed that Japan has over 14,000 islands, double the previous estimate!", japanese: "最近の再調査で、日本には以前の推定を倍上回る14,000以上の島があることがわかりました！" }
-  ];
 
   const jlptRoadmaps = [
     { level: 'N5', title: 'Beginner', desc: 'Basic vocab & kanji', color: '#9DEEE9' },
@@ -37,7 +32,7 @@ export default function HomeScreen() {
 
   const checkAndUpdateStreak = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0]; // Format: 'YYYY-MM-DD'
+      const today = new Date().toISOString().split('T')[0];
       const lastActive = await AsyncStorage.getItem('last_active_date');
       const currentStreak = await AsyncStorage.getItem('streak_count');
 
@@ -80,30 +75,18 @@ export default function HomeScreen() {
     });
 
     checkAndUpdateStreak();
-
-    const getRandomFact = () => setDailyFact(factsList[Math.floor(Math.random() * factsList.length)]);
-    getRandomFact();
-
-    const interval = setInterval(() => {
-      Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
-        getRandomFact();
-        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
-      });
-    }, 10000);
-
-    return () => { clearInterval(interval); unsubscribeNetwork(); };
   }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.gridOverlay}>
-        {[...Array(10)].map((_, i) => <View key={`v-${i}`} style={[styles.gridLineVertical, { left: i * (width / 5) }]} />)}
-        {[...Array(25)].map((_, i) => <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 50 }]} />)}
+        {[...Array(10)].map((_, i) => <View key={`v-${i}`} style={[styles.gridLineVertical, { left: i * 60 }]} />)}
+        {[...Array(25)].map((_, i) => <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 60 }]} />)}
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         
-        {/* Header Row with Network Status & Streak Badge */}
+        {/* Header Row */}
         <View style={styles.headerRow}>
           <View style={styles.networkBadge}>
             <View style={[styles.statusDot, { backgroundColor: isOnline ? '#6BCB77' : '#FF766D' }]} />
@@ -118,7 +101,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 1. Master the Alphabet Card (Top Position) */}
+        {/* 1. Master the Alphabet Card */}
         <Pressable onPress={() => router.push('/(tabs)')} style={styles.cardWrapper}>
           {({ pressed }) => (
             <>
@@ -132,7 +115,7 @@ export default function HomeScreen() {
           )}
         </Pressable>
 
-        {/* 2. Random Kanji Teaser Component (2nd Position) */}
+        {/* 2. Random Kanji Teaser Component */}
         <RandomKanjiCard />
 
         <Text style={styles.sectionLabel}>YOUR LEARNING PATH</Text>
@@ -152,11 +135,13 @@ export default function HomeScreen() {
           )}
         </Pressable>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.jlptScrollContainer}>
+        {/* JLPT Roadmaps */}
+        <Text style={[styles.sectionLabel, { marginTop: 15 }]}>JLPT REFERENCE LEVELS</Text>
+        <View style={styles.jlptGridContainer}>
           {jlptRoadmaps.map((item, index) => (
             <Pressable 
               key={index} 
-              style={styles.jlptCardWrapper} 
+              style={[styles.jlptCardWrapper, index >= 3 && styles.jlptCardWrapperWide]} 
               onPress={() => router.push({ pathname: '/(tabs)/vocab', params: { filterLevel: item.level } })}
             >
               {({ pressed }) => (
@@ -171,7 +156,7 @@ export default function HomeScreen() {
               )}
             </Pressable>
           ))}
-        </ScrollView>
+        </View>
 
         <Text style={[styles.sectionLabel, { marginTop: 15 }]}>PRACTICE & REVIEW</Text>
 
@@ -198,18 +183,32 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#520D58' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#520D58',
+    ...(Platform.OS === 'web' && {
+      maxWidth: 680,
+      alignSelf: 'center',
+      width: '100%',
+      marginVertical: 20,
+      borderRadius: 24,
+      borderWidth: 4,
+      borderColor: '#000000',
+      overflow: 'hidden',
+      boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+    }),
+  },
   gridOverlay: { ...StyleSheet.absoluteFillObject, zIndex: -1, opacity: 0.08 },
   gridLineVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#ffffff' },
   gridLineHorizontal: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#ffffff' },
-  scrollContainer: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 },
+  scrollContainer: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 60 },
   headerRow: { marginBottom: 25, marginTop: 10 },
   networkBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#000', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginBottom: 10 },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
   statusText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
   headerTopRight: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
   headerTitle: { fontSize: 32, fontWeight: '900', color: '#ffffff' },
-  streakBadge: { backgroundColor: '#FA73FF', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10, borderWidth: 2.5, borderColor: '#000000', shadowColor: '#000', shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3 },
+  streakBadge: { backgroundColor: '#FA73FF', paddingVertical: 5, paddingHorizontal: 12, borderRadius: 10, borderWidth: 2.5, borderColor: '#000000', shadowColor: '#000', shadowOffset: { width: 2, height: 2 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3 },
   streakText: { fontSize: 12, fontWeight: '900', color: '#000000' },
   cardWrapper: { position: 'relative', marginBottom: 25 },
   cardShadow: { position: 'absolute', top: 8, left: 8, right: -8, bottom: -8, backgroundColor: '#000000', borderRadius: 20 },
@@ -220,11 +219,35 @@ const styles = StyleSheet.create({
   badgeText: { color: '#FA73FF', fontWeight: 'bold', fontSize: 11, letterSpacing: 1 },
   heroTitle: { fontSize: 28, fontWeight: '900', color: '#000000', marginBottom: 10 },
   heroDesc: { fontSize: 15, color: '#1a0b0b', lineHeight: 22, fontWeight: '600', marginBottom: 15 },
-  sectionLabel: { color: '#A7B3B7', fontWeight: 'bold', letterSpacing: 1.5, fontSize: 13, marginBottom: 16 },
+  sectionLabel: { color: '#A7B3B7', fontWeight: 'bold', letterSpacing: 1.5, fontSize: 13, marginBottom: 16, marginTop: 10 },
   roadmapHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   generalRoadmapTitle: { fontSize: 22, fontWeight: '900', color: '#520D58' },
-  jlptScrollContainer: { paddingBottom: 25, paddingRight: 20, paddingTop: 5 },
-  jlptCardWrapper: { width: 140, marginRight: 16, position: 'relative' },
+  jlptGridContainer: {
+    ...(Platform.OS === 'web' ? {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 16,
+      justifyContent: 'space-between',
+      paddingBottom: 10,
+    } : {
+      flexDirection: 'row',
+    }),
+  },
+  jlptCardWrapper: { 
+    ...(Platform.OS === 'web' ? {
+      width: '31%',
+      marginBottom: 16,
+    } : {
+      width: 150,
+      marginRight: 16,
+    }),
+    position: 'relative',
+  },
+  jlptCardWrapperWide: {
+    ...(Platform.OS === 'web' ? {
+      width: '48%', // Makes N2 and N1 stretch to fill the second row perfectly without a gap
+    } : {}),
+  },
   jlptCard: { borderRadius: 16, borderWidth: 4, borderColor: '#000000', padding: 16, height: 150, justifyContent: 'space-between' },
   jlptLevel: { fontSize: 32, fontWeight: '900', color: '#000' },
   jlptTitle: { fontSize: 14, fontWeight: '900', color: '#000', marginTop: 4 },

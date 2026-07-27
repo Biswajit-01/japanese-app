@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Dimensions, PanResponder } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Dimensions, PanResponder, Platform } from 'react-native';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import * as Speech from 'expo-speech';
 
 const { width } = Dimensions.get('window');
-const canvasSize = width - 40;
+const canvasSize = (Platform.OS === 'web' ? 680 : width) - 40;
 
 export default function DrawScreen() {
   const [selectedSection, setSelectedSection] = useState<'hiragana' | 'katakana'>('hiragana');
@@ -173,7 +173,7 @@ export default function DrawScreen() {
     setShowAnswer(true);
     setFeedback(`Check the step-by-step stroke guide below! 🎯`);
     Speech.stop(); 
-    Speech.speak(targetChar.kana, { language: 'ja-JP', rate: 0.3 });
+    Speech.speak(targetChar.kana, { language: 'ja-JP'});
   };
 
   const nextCharacter = () => {
@@ -188,6 +188,11 @@ export default function DrawScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.gridOverlay}>
+        {[...Array(10)].map((_, i) => <View key={`v-${i}`} style={[styles.gridLineVertical, { left: i * 60 }]} />)}
+        {[...Array(25)].map((_, i) => <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 60 }]} />)}
+      </View>
+
       <Text style={styles.header}>Trace Pad ✍️</Text>
       
       {/* Section Switcher Tabs */}
@@ -273,7 +278,26 @@ export default function DrawScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#520D58', alignItems: 'center', paddingTop: 10 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#520D58', 
+    alignItems: 'center', 
+    paddingTop: 10,
+    ...(Platform.OS === 'web' && {
+      maxWidth: 680,
+      alignSelf: 'center',
+      width: '100%',
+      marginVertical: 20,
+      borderRadius: 24,
+      borderWidth: 4,
+      borderColor: '#000000',
+      overflow: 'hidden',
+      boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+    }),
+  },
+  gridOverlay: { ...StyleSheet.absoluteFillObject, zIndex: -1, opacity: 0.08 },
+  gridLineVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#ffffff' },
+  gridLineHorizontal: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#ffffff' },
   header: { fontSize: 26, fontWeight: '900', color: '#ffffff', marginBottom: 8 },
   
   tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10, gap: 10, paddingHorizontal: 15 },
