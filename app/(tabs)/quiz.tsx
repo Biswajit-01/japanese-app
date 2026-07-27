@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Dimensions, Animated, Platform } from 'react-native';
-import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 const canvasSize = (Platform.OS === 'web' ? 680 : width) - 40;
@@ -205,118 +205,120 @@ export default function QuizScreen() {
         ))}
       </View>
 
-      {!isFinished ? (
-        <>
-          {/* Scoreboard Bar */}
-          <View style={styles.scoreRow}>
-            <View style={styles.scoreBadge}>
-              <Text style={styles.scoreText}>Progress: <Text style={styles.boldText}>{questionCount}/{questionLimit}</Text></Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {!isFinished ? (
+          <>
+            {/* Scoreboard Bar */}
+            <View style={styles.scoreRow}>
+              <View style={styles.scoreBadge}>
+                <Text style={styles.scoreText}>Progress: <Text style={styles.boldText}>{questionCount}/{questionLimit}</Text></Text>
+              </View>
+              <View style={styles.scoreBadge}>
+                <Text style={styles.scoreText}>Score: <Text style={styles.boldText}>{score}</Text></Text>
+              </View>
+              <View style={styles.scoreBadge}>
+                <Text style={styles.scoreText}>Streak: <Text style={[styles.boldText, { color: '#FF4500' }]}>🔥 {streak}</Text></Text>
+              </View>
             </View>
-            <View style={styles.scoreBadge}>
-              <Text style={styles.scoreText}>Score: <Text style={styles.boldText}>{score}</Text></Text>
-            </View>
-            <View style={styles.scoreBadge}>
-              <Text style={styles.scoreText}>Streak: <Text style={[styles.boldText, { color: '#FF4500' }]}>🔥 {streak}</Text></Text>
-            </View>
-          </View>
 
-          {/* Question Card */}
-          <View style={styles.promptWrapper}>
-            <View style={styles.cardShadow} />
-            <View style={styles.promptCard}>
-              <Text style={styles.promptTitle}>WHAT IS THIS {currentQuestion.type.toUpperCase()}?</Text>
-              <Text style={styles.promptTarget}>{currentQuestion.kana}</Text>
+            {/* Question Card */}
+            <View style={styles.promptWrapper}>
+              <View style={styles.cardShadow} />
+              <View style={styles.promptCard}>
+                <Text style={styles.promptTitle}>WHAT IS THIS {currentQuestion.type.toUpperCase()}?</Text>
+                <Text style={styles.promptTarget}>{currentQuestion.kana}</Text>
+              </View>
             </View>
-          </View>
 
-          {/* Options Grid */}
-          <View style={styles.optionsContainer}>
-            {options.map((option, index) => {
-              let btnBg = '#A7B3B7';
-              if (selectedAnswer !== null) {
-                if (option === currentQuestion.romaji) {
-                  btnBg = '#00C853';
-                } else if (option === selectedAnswer) {
-                  btnBg = '#FF5252';
+            {/* Options Grid */}
+            <View style={styles.optionsContainer}>
+              {options.map((option, index) => {
+                let btnBg = '#A7B3B7';
+                if (selectedAnswer !== null) {
+                  if (option === currentQuestion.romaji) {
+                    btnBg = '#00C853';
+                  } else if (option === selectedAnswer) {
+                    btnBg = '#FF5252';
+                  }
                 }
-              }
 
-              return (
-                <TouchableOpacity 
-                  key={index} 
-                  style={styles.optionWrapper} 
-                  activeOpacity={0.8}
-                  onPress={() => handleAnswerPress(option)}
-                >
+                return (
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.optionWrapper} 
+                    activeOpacity={0.8}
+                    onPress={() => handleAnswerPress(option)}
+                  >
+                    <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
+                    <View style={[styles.optionButton, { backgroundColor: btnBg }]}>
+                      <Text style={styles.optionText}>{option}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Feedback & Next Button */}
+            {selectedAnswer !== null && (
+              <View style={styles.feedbackContainer}>
+                <Text style={[styles.feedbackText, { color: isCorrect ? '#00E676' : '#FF5252' }]}>
+                  {isCorrect ? 'Correct! 🎉' : `Incorrect! It was "${currentQuestion.romaji}" ❌`}
+                </Text>
+                
+                <TouchableOpacity style={styles.nextWrapper} activeOpacity={0.8} onPress={nextQuestion}>
                   <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
-                  <View style={[styles.optionButton, { backgroundColor: btnBg }]}>
-                    <Text style={styles.optionText}>{option}</Text>
+                  <View style={styles.nextButton}>
+                    <Text style={styles.nextButtonText}>{questionCount === questionLimit ? 'See Results ➔' : 'Next Question ➔'}</Text>
                   </View>
                 </TouchableOpacity>
-              );
-            })}
+              </View>
+            )}
+          </>
+        ) : (
+          /* Quiz Summary Screen with Multi-Particle Fireworks & Confetti Shower */
+          <View style={styles.summaryContainer}>
+            {/* Multiple Fireworks Particles */}
+            <Animated.View style={[styles.fireworkSpark, { top: '20%', left: '25%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#FA73FF' }]} />
+            <Animated.View style={[styles.fireworkSpark, { top: '25%', right: '25%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#9DEEE9' }]} />
+            <Animated.View style={[styles.fireworkSpark, { bottom: '25%', left: '30%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#FFD700' }]} />
+            <Animated.View style={[styles.fireworkSpark, { bottom: '30%', right: '30%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#00E676' }]} />
+
+            {/* Falling Confetti Bits */}
+            {[...Array(15)].map((_, i) => (
+              <View 
+                key={i} 
+                style={[
+                  styles.confettiBit, 
+                  { 
+                    left: `${(i * 7) % 95}%`, 
+                    top: `${(i * 11) % 85}%`, 
+                    backgroundColor: ['#FA73FF', '#9DEEE9', '#FFD700', '#FF4500', '#00E676'][i % 5] 
+                  }
+                ]} 
+              />
+            ))}
+
+            <Animated.View style={[styles.summaryWrapper, { transform: [{ scale: bounceAnim }] }]}>
+              <View style={styles.cardShadow} />
+              <View style={styles.summaryCard}>
+                <Text style={styles.trophyEmoji}>🏆✨</Text>
+                <Text style={styles.summaryTitle}>QUIZ COMPLETED!</Text>
+                <Text style={styles.summaryScore}>Result: {score} / {questionLimit}</Text>
+                <Text style={styles.summarySubtitle}>
+                  {score === questionLimit ? 'Flawless victory! 🌟' : score >= questionLimit / 2 ? 'Great job practicing! 👍' : 'Keep practicing to improve! 💪'}
+                </Text>
+
+                <TouchableOpacity style={styles.restartWrapper} activeOpacity={0.8} onPress={() => startQuiz(activeTab, questionLimit)}>
+                  <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
+                  <View style={styles.restartButton}>
+                    <Text style={styles.restartButtonText}>Play Again 🔄</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
           </View>
-
-          {/* Feedback & Next Button */}
-          {selectedAnswer !== null && (
-            <View style={styles.feedbackContainer}>
-              <Text style={[styles.feedbackText, { color: isCorrect ? '#00E676' : '#FF5252' }]}>
-                {isCorrect ? 'Correct! 🎉' : `Incorrect! It was "${currentQuestion.romaji}" ❌`}
-              </Text>
-              
-              <TouchableOpacity style={styles.nextWrapper} activeOpacity={0.8} onPress={nextQuestion}>
-                <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
-                <View style={styles.nextButton}>
-                  <Text style={styles.nextButtonText}>{questionCount === questionLimit ? 'See Results ➔' : 'Next Question ➔'}</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          )}
-        </>
-      ) : (
-        /* Quiz Summary Screen with Multi-Particle Fireworks & Confetti Shower */
-        <View style={styles.summaryContainer}>
-          {/* Multiple Fireworks Particles */}
-          <Animated.View style={[styles.fireworkSpark, { top: '20%', left: '25%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#FA73FF' }]} />
-          <Animated.View style={[styles.fireworkSpark, { top: '25%', right: '25%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#9DEEE9' }]} />
-          <Animated.View style={[styles.fireworkSpark, { bottom: '25%', left: '30%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#FFD700' }]} />
-          <Animated.View style={[styles.fireworkSpark, { bottom: '30%', right: '30%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#00E676' }]} />
-
-          {/* Falling Confetti Bits */}
-          {[...Array(15)].map((_, i) => (
-            <View 
-              key={i} 
-              style={[
-                styles.confettiBit, 
-                { 
-                  left: `${(i * 7) % 95}%`, 
-                  top: `${(i * 11) % 85}%`, 
-                  backgroundColor: ['#FA73FF', '#9DEEE9', '#FFD700', '#FF4500', '#00E676'][i % 5] 
-                }
-              ]} 
-            />
-          ))}
-
-          <Animated.View style={[styles.summaryWrapper, { transform: [{ scale: bounceAnim }] }]}>
-            <View style={styles.cardShadow} />
-            <View style={styles.summaryCard}>
-              <Text style={styles.trophyEmoji}>🏆✨</Text>
-              <Text style={styles.summaryTitle}>QUIZ COMPLETED!</Text>
-              <Text style={styles.summaryScore}>Result: {score} / {questionLimit}</Text>
-              <Text style={styles.summarySubtitle}>
-                {score === questionLimit ? 'Flawless victory! 🌟' : score >= questionLimit / 2 ? 'Great job practicing! 👍' : 'Keep practicing to improve! 💪'}
-              </Text>
-
-              <TouchableOpacity style={styles.restartWrapper} activeOpacity={0.8} onPress={() => startQuiz(activeTab, questionLimit)}>
-                <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
-                <View style={styles.restartButton}>
-                  <Text style={styles.restartButtonText}>Play Again 🔄</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </View>
-      )}
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -356,6 +358,8 @@ const styles = StyleSheet.create({
   limitButtonActive: { backgroundColor: '#9DEEE9' },
   limitButtonText: { color: '#000', fontWeight: '900', fontSize: 12 },
   limitTextActive: { color: '#520D58' },
+
+  scrollContent: { alignItems: 'center', paddingBottom: 40, width: '100%' },
 
   scoreRow: { flexDirection: 'row', width: canvasSize, justifyContent: 'space-between', marginBottom: 10 },
   scoreBadge: { backgroundColor: '#A7B3B7', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10, borderWidth: 2, borderColor: '#000' },
