@@ -1,10 +1,7 @@
-import { Audio } from 'expo-av';
+import { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Dimensions, Animated, ScrollView, Platform } from 'react-native';
 import * as Speech from 'expo-speech';
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const { width, height } = Dimensions.get('window');
-const canvasSize = (Platform.OS === 'web' ? 680 : width) - 40;
+import { Audio } from 'expo-av';
 
 const hiraganaPool = [
   { kana: 'あ', romaji: 'a', type: 'Hiragana' }, { kana: 'い', romaji: 'i', type: 'Hiragana' }, { kana: 'う', romaji: 'u', type: 'Hiragana' }, { kana: 'え', romaji: 'e', type: 'Hiragana' }, { kana: 'お', romaji: 'o', type: 'Hiragana' },
@@ -50,7 +47,6 @@ export default function QuizScreen() {
 
   const currentPool = activeTab === 'hiragana' ? hiraganaPool : katakanaPool;
 
-  // Sound effects helper
   const playSound = async (type: 'correct' | 'wrong' | 'complete') => {
     try {
       let soundUri = '';
@@ -275,15 +271,12 @@ export default function QuizScreen() {
             )}
           </>
         ) : (
-          /* Quiz Summary Screen with Multi-Particle Fireworks & Confetti Shower */
           <View style={styles.summaryContainer}>
-            {/* Multiple Fireworks Particles */}
             <Animated.View style={[styles.fireworkSpark, { top: '20%', left: '25%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#FA73FF' }]} />
             <Animated.View style={[styles.fireworkSpark, { top: '25%', right: '25%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#9DEEE9' }]} />
             <Animated.View style={[styles.fireworkSpark, { bottom: '25%', left: '30%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#FFD700' }]} />
             <Animated.View style={[styles.fireworkSpark, { bottom: '30%', right: '30%', transform: [{ scale: particleScale }], opacity: particleOpacity, backgroundColor: '#00E676' }]} />
 
-            {/* Falling Confetti Bits */}
             {[...Array(15)].map((_, i) => (
               <View 
                 key={i} 
@@ -361,23 +354,25 @@ const styles = StyleSheet.create({
 
   scrollContent: { alignItems: 'center', paddingBottom: 40, width: '100%' },
 
-  scoreRow: { flexDirection: 'row', width: canvasSize, justifyContent: 'space-between', marginBottom: 10 },
+  scoreRow: { flexDirection: 'row', width: '90%'},
+  // using percentage width for robust layout across devices
+  // ... rest of layout uses flexible width values
   scoreBadge: { backgroundColor: '#A7B3B7', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10, borderWidth: 2, borderColor: '#000' },
   scoreText: { color: '#000', fontWeight: '800', fontSize: 11 },
   boldText: { fontWeight: '900', color: '#520D58' },
 
-  promptWrapper: { position: 'relative', width: canvasSize, marginBottom: 12 },
+  promptWrapper: { position: 'relative', width: '90%', maxWidth: 580, marginBottom: 12 },
   cardShadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, backgroundColor: '#000', borderRadius: 16 },
   promptCard: { backgroundColor: '#ffffff', paddingVertical: 16, borderRadius: 16, borderWidth: 4, borderColor: '#000', alignItems: 'center' },
   promptTitle: { fontSize: 11, color: '#666', fontWeight: '900', letterSpacing: 1 },
   promptTarget: { fontSize: 48, fontWeight: '900', color: '#520D58', marginTop: 2 },
 
-  optionsContainer: { width: canvasSize, gap: 8, marginBottom: 12 },
+  optionsContainer: { width: '90%', maxWidth: 580, gap: 8, marginBottom: 12 },
   optionWrapper: { position: 'relative', width: '100%' },
   optionButton: { paddingVertical: 10, borderRadius: 12, borderWidth: 3, borderColor: '#000', alignItems: 'center' },
   optionText: { color: '#000', fontWeight: '900', fontSize: 15, textTransform: 'uppercase' },
 
-  feedbackContainer: { width: canvasSize, alignItems: 'center', gap: 6 },
+  feedbackContainer: { width: '90%', maxWidth: 580, alignItems: 'center', gap: 6 },
   feedbackText: { fontSize: 12, fontWeight: '900', backgroundColor: '#000', paddingHorizontal: 14, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
   
   nextWrapper: { position: 'relative', width: '100%' },
@@ -385,7 +380,7 @@ const styles = StyleSheet.create({
   nextButtonText: { color: '#000', fontWeight: '900', fontSize: 13 },
 
   summaryContainer: { flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center', paddingBottom: 40, backgroundColor: '#520D58' },
-  summaryWrapper: { position: 'relative', width: canvasSize, zIndex: 3 },
+  summaryWrapper: { position: 'relative', width: '90%', maxWidth: 580, zIndex: 3 },
   
   fireworkSpark: { position: 'absolute', width: 90, height: 90, borderRadius: 45, borderWidth: 3, borderColor: '#FFF', zIndex: 1, opacity: 0.8 },
   confettiBit: { position: 'absolute', width: 8, height: 14, borderRadius: 2, zIndex: 2, opacity: 0.9 },
@@ -396,6 +391,6 @@ const styles = StyleSheet.create({
   summaryScore: { fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 6 },
   summarySubtitle: { fontSize: 13, fontWeight: '800', color: '#222', textAlign: 'center', marginBottom: 20 },
   restartWrapper: { position: 'relative', width: '100%' },
-  restartButton: { backgroundColor: '#FA73FF', paddingVertical: 12, borderRadius: 12, borderWidth: 3, borderColor: '#000', alignItems: 'center' },
+  restartButton: { backgroundColor: '#FA73FF', paddingVertical: 12, borderRadius: '12' as any, borderWidth: 3, borderColor: '#000', alignItems: 'center' },
   restartButtonText: { color: '#000', fontWeight: '900', fontSize: 15 },
 });
