@@ -1,35 +1,30 @@
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, SafeAreaView, useWindowDimensions, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { Svg, Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Dimensions, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Path, Svg } from 'react-native-svg';
-
-const { width } = Dimensions.get('window');
-const canvasSize = Math.min((Platform.OS === 'web' ? 680 : width) - 40, 400);
 
 export default function DrawScreen() {
+  const { width } = useWindowDimensions();
+  const canvasSize = Math.min((Platform.OS === 'web' ? 680 : width) - 40, 360);
+
   const router = useRouter();
   const [paths, setPaths] = useState<{ path: string; color: string; strokeWidth: number }[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('');
   const [currentColor, setCurrentColor] = useState<string>('#000000');
-  const [currentWidth, setCurrentWidth] = useState<number>(8);
+  const [currentWidth] = useState<number>(8);
 
   const colors = ['#000000', '#FF5252', '#00C853', '#29B6F6', '#FA73FF', '#FFD700'];
 
-  // Handle drawing touch events
   const handleTouchStart = (e: any) => {
     const { nativeEvent } = e;
-    const locX = nativeEvent.locationX;
-    const locY = nativeEvent.locationY;
-    setCurrentPath(`M ${locX} ${locY}`);
+    setCurrentPath(`M ${nativeEvent.locationX} ${nativeEvent.locationY}`);
   };
 
   const handleTouchMove = (e: any) => {
     const { nativeEvent } = e;
-    const locX = nativeEvent.locationX;
-    const locY = nativeEvent.locationY;
     if (currentPath) {
-      setCurrentPath(`${currentPath} L ${locX} ${locY}`);
+      setCurrentPath(`${currentPath} L ${nativeEvent.locationX} ${nativeEvent.locationY}`);
     }
   };
 
@@ -47,13 +42,11 @@ export default function DrawScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Background Grid */}
       <View style={styles.gridOverlay}>
         {[...Array(10)].map((_, i) => <View key={`v-${i}`} style={[styles.gridLineVertical, { left: i * 60 }]} />)}
         {[...Array(30)].map((_, i) => <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 60 }]} />)}
       </View>
 
-      {/* Top Header */}
       <View style={styles.headerRow}>
         <PressableWithBack router={router} />
         <Text style={styles.headerTitle}>Trace & Draw ✍️</Text>
@@ -62,8 +55,7 @@ export default function DrawScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={true}>
         
-        {/* Ghost Reference Guide Card */}
-        <View style={styles.ghostCardWrapper}>
+        <View style={[styles.ghostCardWrapper, { width: canvasSize }]}>
           <View style={styles.cardShadow} />
           <View style={styles.ghostCard}>
             <Text style={styles.ghostLabel}>PRACTICE CHARACTER:</Text>
@@ -72,27 +64,28 @@ export default function DrawScreen() {
           </View>
         </View>
 
-        {/* Drawing Canvas Board */}
-        <View style={styles.canvasWrapper}>
+        <View style={[styles.canvasWrapper, { width: canvasSize }]}>
           <View style={styles.cardShadow} />
           <View 
-            style={[styles.canvasBox, Platform.OS === 'web' && ({ touchAction: 'none' } as any)]}
+            style={[
+              styles.canvasBox, 
+              { width: canvasSize, height: canvasSize },
+              Platform.OS === 'web' && ({ touchAction: 'pan-y' } as any)
+            ]}
             onStartShouldSetResponder={() => true}
             onResponderGrant={handleTouchStart}
             onResponderMove={handleTouchMove}
             onResponderRelease={handleTouchEnd}
           >
             <Svg height={canvasSize} width={canvasSize} style={styles.svgCanvas}>
-              {/* Ghost guide background stroke */}
               <Path
-                d="M 100 80 Q 200 20 300 120 T 200 320"
+                d="M 80 60 Q 160 10 240 100 T 160 280"
                 stroke="rgba(0,0,0,0.08)"
                 strokeWidth="24"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
               />
-              {/* User drawn paths */}
               {paths.map((p, idx) => (
                 <Path
                   key={idx}
@@ -104,7 +97,6 @@ export default function DrawScreen() {
                   fill="none"
                 />
               ))}
-              {/* Active drawing path */}
               {currentPath ? (
                 <Path
                   d={currentPath}
@@ -119,8 +111,7 @@ export default function DrawScreen() {
           </View>
         </View>
 
-        {/* Color Palette & Controls */}
-        <View style={styles.controlsContainer}>
+        <View style={[styles.controlsContainer, { width: canvasSize }]}>
           <View style={styles.paletteRow}>
             {colors.map((col) => (
               <TouchableOpacity
@@ -183,18 +174,18 @@ const styles = StyleSheet.create({
 
   scrollContent: { alignItems: 'center', paddingBottom: 40, width: '100%' },
 
-  ghostCardWrapper: { position: 'relative', width: canvasSize, marginBottom: 15 },
+  ghostCardWrapper: { position: 'relative', marginBottom: 15 },
   cardShadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, backgroundColor: '#000', borderRadius: 16 },
   ghostCard: { backgroundColor: '#9DEEE9', padding: 12, borderRadius: 16, borderWidth: 4, borderColor: '#000', alignItems: 'center' },
   ghostLabel: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 1 },
   ghostCharacter: { fontSize: 42, fontWeight: '900', color: '#520D58', marginVertical: 2 },
   ghostSub: { fontSize: 11, fontWeight: '800', color: 'rgba(0,0,0,0.7)' },
 
-  canvasWrapper: { position: 'relative', width: canvasSize, marginBottom: 20 },
-  canvasBox: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 4, borderColor: '#000', overflow: 'hidden', width: canvasSize, height: canvasSize },
+  canvasWrapper: { position: 'relative', marginBottom: 20 },
+  canvasBox: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 4, borderColor: '#000', overflow: 'hidden' },
   svgCanvas: { backgroundColor: '#fff' },
 
-  controlsContainer: { width: canvasSize, alignItems: 'center', gap: 15 },
+  controlsContainer: { alignItems: 'center', gap: 15 },
   paletteRow: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
   colorBubble: { width: 32, height: 32, borderRadius: 16, borderWidth: 3, borderColor: '#000' },
   selectedColor: { borderWidth: 4, borderColor: '#FFF', transform: [{ scale: 1.15 }] },
