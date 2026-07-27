@@ -1,0 +1,1 @@
+Hello, this is my Japanese Learning App!
