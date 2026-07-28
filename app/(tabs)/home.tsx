@@ -1,12 +1,10 @@
-import RandomKanjiCard from '../../components/RandomKanjiCard';
-import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, Pressable, ScrollView, Dimensions, Animated, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const { width } = Dimensions.get('window');
+import NetInfo from '@react-native-community/netinfo';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import RandomKanjiCard from '../../components/RandomKanjiCard';
 
 export default function HomeScreen() {
   const router = useRouter();

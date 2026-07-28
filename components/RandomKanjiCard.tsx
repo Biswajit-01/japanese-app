@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import * as Speech from 'expo-speech';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // Import your local fallback vocabulary file
 import vocabData from '../assets/vocab.json';
-
-const { width } = Dimensions.get('window');
-const canvasSize = width - 40;
 
 export default function RandomKanjiCard() {
   const [randomWord, setRandomWord] = useState<any>(null);
@@ -125,8 +122,8 @@ export default function RandomKanjiCard() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { alignItems: 'center', marginVertical: 4 },
-  cardWrapper: { position: 'relative', width: canvasSize, marginBottom: 8 },
+  wrapper: { width: '100%', alignItems: 'center', marginVertical: 4 },
+  cardWrapper: { position: 'relative', width: '100%', marginBottom: 8 },
   cardShadow: { position: 'absolute', top: 5, left: 5, right: -5, bottom: -5, backgroundColor: '#000', borderRadius: 14 },
   
   // Reduced height from 230 to 175 for a much more compact look
@@ -150,7 +147,7 @@ const styles = StyleSheet.create({
   meaningText: { fontSize: 11, fontWeight: '900', color: '#000', textAlign: 'center' },
   levelIndicator: { fontSize: 7, fontWeight: '900', backgroundColor: '#FA73FF', paddingHorizontal: 4, paddingVertical: 0.5, borderRadius: 3, overflow: 'hidden', borderWidth: 1, borderColor: '#000' },
 
-  actionWrapper: { position: 'relative', width: canvasSize, marginBottom: 8 },
+  actionWrapper: { position: 'relative', width: '100%', marginBottom: 8 },
   shuffleButton: { backgroundColor: '#FA73FF', paddingVertical: 6, borderRadius: 10, borderWidth: 2.5, borderColor: '#000', alignItems: 'center' },
   actionButtonText: { color: '#000', fontWeight: '900', fontSize: 12 },
   loadingText: { color: '#520D58', fontWeight: '900', fontSize: 11 },
