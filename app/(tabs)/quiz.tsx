@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, useWindowDimensions, Animated, ScrollView, Platform } from 'react-native';
-import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 const hiraganaPool = [
   { kana: 'あ', romaji: 'a', type: 'Hiragana' }, { kana: 'い', romaji: 'i', type: 'Hiragana' }, { kana: 'う', romaji: 'u', type: 'Hiragana' }, { kana: 'え', romaji: 'e', type: 'Hiragana' }, { kana: 'お', romaji: 'o', type: 'Hiragana' },
@@ -204,7 +204,7 @@ export default function QuizScreen() {
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {!isFinished ? (
           <>
             {/* Scoreboard Bar */}
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   limitButtonActive: { backgroundColor: '#9DEEE9' },
   limitButtonText: { color: '#000', fontWeight: '900', fontSize: 12 },
   limitTextActive: { color: '#520D58' },
-
+  scrollView: { flex: 1 },
   scrollContent: { alignItems: 'center', paddingBottom: 40, width: '100%' },
 
   scoreRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },

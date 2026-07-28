@@ -4,7 +4,7 @@ import * as Speech from 'expo-speech';
 
 const { width } = Dimensions.get('window');
 // Fix card size calculation to respect the 680px web container limit
-const effectiveWidth = Platform.OS === 'web' ? 680 : width;
+const effectiveWidth = Math.min(width, 680);
 const cardMargin = 4;
 const cardSize = (effectiveWidth - 30 - (cardMargin * 10)) / 5; 
 

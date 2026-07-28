@@ -99,7 +99,7 @@ export default function RoadmapScreen() {
         <View style={{ width: 44 }} /> 
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         
         <View style={styles.timelineWrapper}>
           {/* The Thick Vertical Timeline Line */}
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   backButton: { position: 'relative', width: 44, height: 44 },
   backBtnMain: { width: 44, height: 44, backgroundColor: '#A7B3B7', borderRadius: 12, borderWidth: 3, borderColor: '#000', justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 24, fontWeight: '900', color: '#ffffff' },
-  
+  scrollView: { flex: 1 },
   scrollContainer: { paddingBottom: 40 },
   
   timelineWrapper: { position: 'relative', paddingHorizontal: 20, paddingBottom: 20 },

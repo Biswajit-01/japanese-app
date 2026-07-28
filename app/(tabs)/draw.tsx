@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, useWindowDimensions, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import { Svg, Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Path, Svg } from 'react-native-svg';
 
 export default function DrawScreen() {
   const { width } = useWindowDimensions();
@@ -13,6 +13,7 @@ export default function DrawScreen() {
   const [currentPath, setCurrentPath] = useState<string>('');
   const [currentColor, setCurrentColor] = useState<string>('#000000');
   const [currentWidth] = useState<number>(8);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   const colors = ['#000000', '#FF5252', '#00C853', '#29B6F6', '#FA73FF', '#FFD700'];
 
@@ -35,9 +36,8 @@ export default function DrawScreen() {
     }
   };
 
-  const clearCanvas = () => {
-    setPaths([]);
-    setCurrentPath('');
+  const handleCheckDrawing = () => {
+    setFeedback("Drawing captured! Please compare your stroke order and shape manually with the reference model above.");
   };
 
   return (
@@ -53,8 +53,7 @@ export default function DrawScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={true}>
-        
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={true}>
         <View style={[styles.ghostCardWrapper, { width: canvasSize }]}>
           <View style={styles.cardShadow} />
           <View style={styles.ghostCard}>
@@ -122,13 +121,19 @@ export default function DrawScreen() {
             ))}
           </View>
 
-          <TouchableOpacity style={styles.clearWrapper} activeOpacity={0.8} onPress={clearCanvas}>
+          <TouchableOpacity style={styles.checkWrapper} activeOpacity={0.8} onPress={handleCheckDrawing}>
             <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
-            <View style={styles.clearButton}>
-              <Ionicons name="trash-outline" size={18} color="#000" />
-              <Text style={styles.clearButtonText}>Clear Canvas</Text>
+            <View style={styles.checkButton}>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#000" />
+              <Text style={styles.checkButtonText}>Check Drawing</Text>
             </View>
           </TouchableOpacity>
+
+          {feedback && (
+            <View style={[styles.feedbackCard, { width: canvasSize }]}>
+              <Text style={styles.feedbackText}>{feedback}</Text>
+            </View>
+          )}
         </View>
 
       </ScrollView>
@@ -171,7 +176,7 @@ const styles = StyleSheet.create({
   backButton: { position: 'relative', width: 44, height: 44 },
   backBtnMain: { width: 44, height: 44, backgroundColor: '#A7B3B7', borderRadius: 12, borderWidth: 3, borderColor: '#000', justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 24, fontWeight: '900', color: '#ffffff' },
-
+  scrollView: { flex: 1 },
   scrollContent: { alignItems: 'center', paddingBottom: 40, width: '100%' },
 
   ghostCardWrapper: { position: 'relative', marginBottom: 15 },
@@ -190,7 +195,10 @@ const styles = StyleSheet.create({
   colorBubble: { width: 32, height: 32, borderRadius: 16, borderWidth: 3, borderColor: '#000' },
   selectedColor: { borderWidth: 4, borderColor: '#FFF', transform: [{ scale: 1.15 }] },
 
-  clearWrapper: { position: 'relative', width: '100%' },
-  clearButton: { backgroundColor: '#FF5252', flexDirection: 'row', paddingVertical: 12, borderRadius: 12, borderWidth: 3, borderColor: '#000', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  clearButtonText: { color: '#000', fontWeight: '900', fontSize: 14 }
+  checkWrapper: { position: 'relative', width: '100%' },
+  checkButton: { backgroundColor: '#9DEEE9', flexDirection: 'row', paddingVertical: 12, borderRadius: 12, borderWidth: 3, borderColor: '#000', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  checkButtonText: { color: '#000', fontWeight: '900', fontSize: 14 },
+
+  feedbackCard: { backgroundColor: '#FFD700', padding: 12, borderRadius: 12, borderWidth: 3, borderColor: '#000', marginTop: 5 },
+  feedbackText: { color: '#000', fontWeight: '800', fontSize: 12, textAlign: 'center' }
 });

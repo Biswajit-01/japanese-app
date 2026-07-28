@@ -82,7 +82,7 @@ export default function HomeScreen() {
         {[...Array(25)].map((_, i) => <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 60 }]} />)}
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         
         {/* Header Row */}
         <View style={styles.headerRow}>
@@ -199,6 +199,7 @@ const styles = StyleSheet.create({
   gridOverlay: { ...StyleSheet.absoluteFillObject, zIndex: -1, opacity: 0.08 },
   gridLineVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#ffffff' },
   gridLineHorizontal: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#ffffff' },
+  scrollView: { flex: 1 },
   scrollContainer: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 60 },
   headerRow: { marginBottom: 25, marginTop: 10 },
   networkBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#000', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginBottom: 10 },
@@ -221,30 +222,19 @@ const styles = StyleSheet.create({
   roadmapHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   generalRoadmapTitle: { fontSize: 22, fontWeight: '900', color: '#520D58' },
   jlptGridContainer: {
-    ...(Platform.OS === 'web' ? {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 16,
-      justifyContent: 'space-between',
-      paddingBottom: 10,
-    } : {
-      flexDirection: 'row',
-    }),
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    justifyContent: 'space-between',
+    paddingBottom: 10,
   },
-  jlptCardWrapper: { 
-    ...(Platform.OS === 'web' ? {
-      width: '31%',
-      marginBottom: 16,
-    } : {
-      width: 150,
-      marginRight: 16,
-    }),
+  jlptCardWrapper: {
+    width: '47%',
+    marginBottom: 16,
     position: 'relative',
   },
   jlptCardWrapperWide: {
-    ...(Platform.OS === 'web' ? {
-      width: '48%', // Makes N2 and N1 stretch to fill the second row perfectly without a gap
-    } : {}),
+    width: '47%', // Makes N2 and N1 stretch to fill the second row perfectly without a gap
   },
   jlptCard: { borderRadius: 16, borderWidth: 4, borderColor: '#000000', padding: 16, height: 150, justifyContent: 'space-between' },
   jlptLevel: { fontSize: 32, fontWeight: '900', color: '#000' },
