@@ -1,25 +1,75 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { Path, Svg } from 'react-native-svg';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, SafeAreaView, useWindowDimensions, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { Svg, Path } from 'react-native-svg';
+
+// ML Imports
+import * as tf from '@tensorflow/tfjs';
+import { bundleResourceIO, decodeJpeg } from '@tensorflow/tfjs-react-native';
+import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
+import ViewShot from 'react-native-view-shot';
+
+// Sample Kana Data
+const hiraganaData = [
+  { kana: 'か', romaji: 'ka', strokes: 3, desc: '' },
+  { kana: 'し', romaji: 'shi', strokes: 1, desc: '' },
+  { kana: 'ん', romaji: 'n', strokes: 1, desc: '1 Stroke: Continuous upward diagonal curve' },
+  { kana: 'あ', romaji: 'a', strokes: 3, desc: '' },
+];
+const katakanaData = [
+  { kana: 'カ', romaji: 'ka', strokes: 2, desc: '' },
+  { kana: 'シ', romaji: 'shi', strokes: 3, desc: '' },
+  { kana: 'ン', romaji: 'n', strokes: 2, desc: '' },
+  { kana: 'ア', romaji: 'a', strokes: 2, desc: '' },
+];
 
 export default function DrawScreen() {
   const { width } = useWindowDimensions();
-  const canvasSize = Math.min((Platform.OS === 'web' ? 680 : width) - 40, 360);
+  const canvasSize = Math.min((Platform.OS === 'web' ? 680 : width) - 40, 400);
 
-  const router = useRouter();
-  const [paths, setPaths] = useState<{ path: string; color: string; strokeWidth: number }[]>([]);
+  const [activeTab, setActiveTab] = useState<'hiragana' | 'katakana'>('hiragana');
+  const [currentKana, setCurrentKana] = useState(hiraganaData[0]);
+  
+  const [paths, setPaths] = useState<{ path: string }[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('');
-  const [currentColor, setCurrentColor] = useState<string>('#000000');
-  const [currentWidth] = useState<number>(8);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ text: string; color: string } | null>(null);
+  const [isScrollEnabled, setIsScrollEnabled] = useState<boolean>(true);
 
-  const colors = ['#000000', '#FF5252', '#00C853', '#29B6F6', '#FA73FF', '#FFD700'];
+  // Machine Learning States
+  const viewShotRef = useRef<ViewShot>(null);
+  const [isTfReady, setIsTfReady] = useState(false);
+  const [model, setModel] = useState<tf.LayersModel | null>(null);
+
+  // Initialize TensorFlow when the screen loads
+  useEffect(() => {
+    async function initializeTensorFlow() {
+      await tf.ready(); // Connect to Expo WebGL backend
+      setIsTfReady(true);
+
+      try {
+        // UNCOMMENT THIS LATER when you download the K-MNIST model files into your assets folder!
+        /*
+        const loadedModel = await tf.loadLayersModel(
+          bundleResourceIO(require('../../assets/model/model.json'), require('../../assets/model/weights.bin'))
+        );
+        setModel(loadedModel);
+        */
+      } catch (e) {
+        console.log("Model loading failed:", e);
+      }
+    }
+    initializeTensorFlow();
+  }, []);
+
+  useEffect(() => {
+    handleNext();
+  }, [activeTab]);
 
   const handleTouchStart = (e: any) => {
+    setIsScrollEnabled(false); 
     const { nativeEvent } = e;
     setCurrentPath(`M ${nativeEvent.locationX} ${nativeEvent.locationY}`);
+    setFeedback(null);
   };
 
   const handleTouchMove = (e: any) => {
@@ -30,14 +80,77 @@ export default function DrawScreen() {
   };
 
   const handleTouchEnd = () => {
+    setIsScrollEnabled(true); 
     if (currentPath) {
-      setPaths([...paths, { path: currentPath, color: currentColor, strokeWidth: currentWidth }]);
+      setPaths([...paths, { path: currentPath }]);
       setCurrentPath('');
     }
   };
 
-  const handleCheckDrawing = () => {
-    setFeedback("Drawing captured! Please compare your stroke order and shape manually with the reference model above.");
+  const handleClear = () => {
+    setPaths([]);
+    setCurrentPath('');
+    setFeedback(null);
+  };
+
+  const handleVerify = async () => {
+    if (!viewShotRef.current || !viewShotRef.current.capture) return;
+
+    // Optional: First check if stroke count is at least close before running ML
+    if (paths.length === 0) {
+      setFeedback({ text: 'Please draw something first! 🖌️', color: '#FF5252' });
+      return;
+    }
+
+    setFeedback({ text: 'AI is looking... 👀', color: '#FFD700' });
+
+    try {
+      // 1. Snapshot the canvas
+      const uri = await viewShotRef.current.capture();
+
+      // 2. Shrink to 28x28 grayscale
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 28, height: 28 } }],
+        { format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      // 3. Convert to TF Tensor
+      const imgB64 = await FileSystem.readAsStringAsync(manipulatedImage.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const imgBuffer = tf.util.encodeString(imgB64, 'base64').buffer;
+      const raw = new Uint8Array(imgBuffer);
+      
+      const imageTensor = decodeJpeg(raw, 1) // 1 channel = grayscale
+        .div(255.0) // Normalize
+        .expandDims(0); // Batch dimension
+
+      // 4. Predict
+      if (model) {
+        const prediction = await model.predict(imageTensor) as tf.Tensor;
+        const highestProbIndex = prediction.argMax(1).dataSync()[0];
+        
+        // Example validation (you will map this to your actual Kana labels later)
+        setFeedback({ text: `Great shape! (AI Active) 🎉`, color: '#00C853' });
+        
+        tf.dispose([imageTensor, prediction]); // Prevent memory leaks
+      } else {
+        // Fallback testing message
+        setFeedback({ text: `Image snapped! (TF Ready: ${isTfReady ? 'Yes' : 'No'}) 📸`, color: '#9DEEE9' });
+      }
+
+    } catch (error) {
+      console.error(error);
+      setFeedback({ text: 'Error analyzing image.', color: '#FF5252' });
+    }
+  };
+
+  const handleNext = () => {
+    const pool = activeTab === 'hiragana' ? hiraganaData : katakanaData;
+    const randomKana = pool[Math.floor(Math.random() * pool.length)];
+    setCurrentKana(randomKana);
+    handleClear();
   };
 
   return (
@@ -47,93 +160,131 @@ export default function DrawScreen() {
         {[...Array(30)].map((_, i) => <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: i * 60 }]} />)}
       </View>
 
-      <View style={styles.headerRow}>
-        <PressableWithBack router={router} />
-        <Text style={styles.headerTitle}>Trace & Draw ✍️</Text>
-        <View style={{ width: 44 }} />
+      <Text style={styles.headerTitle}>Trace Pad ✍️</Text>
+
+      <View style={styles.tabContainer}>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'hiragana' && styles.tabActive]} 
+          onPress={() => setActiveTab('hiragana')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.tabText}>Hiragana</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'katakana' && styles.tabActive]} 
+          onPress={() => setActiveTab('katakana')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.tabText}>Katakana</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={true}>
-        <View style={[styles.ghostCardWrapper, { width: canvasSize }]}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={isScrollEnabled}
+      >
+        
+        <View style={[styles.infoCardWrapper, { width: canvasSize }]}>
           <View style={styles.cardShadow} />
-          <View style={styles.ghostCard}>
-            <Text style={styles.ghostLabel}>PRACTICE CHARACTER:</Text>
-            <Text style={styles.ghostCharacter}>あ</Text>
-            <Text style={styles.ghostSub}>Trace over the grid below</Text>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>
+              {currentKana.desc ? 'PRACTICE:' : 'TRACE:'} <Text style={styles.infoKana}>{currentKana.kana}</Text> ({currentKana.romaji})
+            </Text>
+            {currentKana.desc ? <Text style={styles.infoDesc}>{currentKana.desc}</Text> : null}
+            
+            <View style={styles.statsRow}>
+              <Text style={styles.statText}>Target Strokes: <Text style={styles.statBold}>{currentKana.strokes}</Text></Text>
+              <Text style={styles.statText}>
+                Strokes Drawn: <Text style={[styles.statBold, paths.length === currentKana.strokes && { color: '#00C853' }]}>{paths.length}</Text>
+              </Text>
+            </View>
           </View>
         </View>
 
-        <View style={[styles.canvasWrapper, { width: canvasSize }]}>
+        <View style={[styles.canvasWrapper, { width: canvasSize, height: canvasSize }]}>
           <View style={styles.cardShadow} />
-          <View 
-            style={[
-              styles.canvasBox, 
-              { width: canvasSize, height: canvasSize },
-              Platform.OS === 'web' && ({ touchAction: 'pan-y' } as any)
-            ]}
-            onStartShouldSetResponder={() => true}
-            onResponderGrant={handleTouchStart}
-            onResponderMove={handleTouchMove}
-            onResponderRelease={handleTouchEnd}
-          >
-            <Svg height={canvasSize} width={canvasSize} style={styles.svgCanvas}>
-              <Path
-                d="M 80 60 Q 160 10 240 100 T 160 280"
-                stroke="rgba(0,0,0,0.08)"
-                strokeWidth="24"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-              />
-              {paths.map((p, idx) => (
-                <Path
-                  key={idx}
-                  d={p.path}
-                  stroke={p.color}
-                  strokeWidth={p.strokeWidth}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-              ))}
-              {currentPath ? (
-                <Path
-                  d={currentPath}
-                  stroke={currentColor}
-                  strokeWidth={currentWidth}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-              ) : null}
-            </Svg>
-          </View>
+          
+          {/* ViewShot Camera Wrap */}
+          <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 1.0 }} style={{ width: '100%', height: '100%', borderRadius: 16, overflow: 'hidden' }}>
+            <View 
+              style={[
+                styles.canvasBox, 
+                { width: '100%', height: '100%' }, 
+                Platform.OS === 'web' && ({ touchAction: 'none' } as any)
+              ]}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderGrant={handleTouchStart}
+              onResponderMove={handleTouchMove}
+              onResponderRelease={handleTouchEnd}
+              onResponderTerminate={handleTouchEnd}
+            >
+              <View style={styles.ghostContainer}>
+                 <Text style={styles.ghostText}>{currentKana.kana}</Text>
+              </View>
+
+              <Svg height="100%" width="100%" style={styles.svgLayer}>
+                {paths.map((p, idx) => (
+                  <Path
+                    key={idx}
+                    d={p.path}
+                    stroke="#E056FD"
+                    strokeWidth={20}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                ))}
+                {currentPath ? (
+                  <Path
+                    d={currentPath}
+                    stroke="#E056FD"
+                    strokeWidth={20}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                ) : null}
+              </Svg>
+            </View>
+          </ViewShot>
         </View>
 
-        <View style={[styles.controlsContainer, { width: canvasSize }]}>
-          <View style={styles.paletteRow}>
-            {colors.map((col) => (
-              <TouchableOpacity
-                key={col}
-                style={[styles.colorBubble, { backgroundColor: col }, currentColor === col && styles.selectedColor]}
-                onPress={() => setCurrentColor(col)}
-              />
-            ))}
-          </View>
+        <View style={[styles.noteWrapper, { width: canvasSize }]}>
+          <Text style={styles.noteText}>
+            💡 Note: Please compare your stroke order and shape manually with the guide.
+          </Text>
+        </View>
 
-          <TouchableOpacity style={styles.checkWrapper} activeOpacity={0.8} onPress={handleCheckDrawing}>
+        {feedback && (
+          <View style={styles.feedbackBanner}>
+            <Text style={[styles.feedbackText, { color: feedback.color }]}>{feedback.text}</Text>
+          </View>
+        )}
+
+        <View style={[styles.actionRow, { width: canvasSize }]}>
+          <TouchableOpacity style={styles.actionBtnWrapper} activeOpacity={0.8} onPress={handleClear}>
             <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
-            <View style={styles.checkButton}>
-              <Ionicons name="checkmark-circle-outline" size={20} color="#000" />
-              <Text style={styles.checkButtonText}>Check Drawing</Text>
+            <View style={[styles.actionBtn, { backgroundColor: '#A7B3B7' }]}>
+              <Text style={styles.actionBtnText}>Clear</Text>
             </View>
           </TouchableOpacity>
 
-          {feedback && (
-            <View style={[styles.feedbackCard, { width: canvasSize }]}>
-              <Text style={styles.feedbackText}>{feedback}</Text>
+          <TouchableOpacity style={styles.actionBtnWrapper} activeOpacity={0.8} onPress={handleVerify}>
+            <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
+            <View style={[styles.actionBtn, { backgroundColor: '#9DEEE9' }]}>
+              <Text style={styles.actionBtnText}>Verify</Text>
             </View>
-          )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionBtnWrapper} activeOpacity={0.8} onPress={handleNext}>
+            <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
+            <View style={[styles.actionBtn, { backgroundColor: '#FA73FF' }]}>
+              <Text style={styles.actionBtnText}>Next</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
       </ScrollView>
@@ -141,21 +292,12 @@ export default function DrawScreen() {
   );
 }
 
-function PressableWithBack({ router }: { router: any }) {
-  return (
-    <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.8}>
-      <View style={[styles.cardShadow, { top: 3, left: 3 }]} />
-      <View style={styles.backBtnMain}>
-        <Ionicons name="arrow-back" size={24} color="#000" />
-      </View>
-    </TouchableOpacity>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#520D58', 
+    backgroundColor: '#4A154B',
+    alignItems: 'center',
+    paddingTop: 10,
     ...(Platform.OS === 'web' && {
       maxWidth: 680,
       alignSelf: 'center',
@@ -171,34 +313,43 @@ const styles = StyleSheet.create({
   gridOverlay: { ...StyleSheet.absoluteFillObject, zIndex: -1, opacity: 0.08 },
   gridLineVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#ffffff' },
   gridLineHorizontal: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#ffffff' },
-  
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, marginBottom: 15 },
-  backButton: { position: 'relative', width: 44, height: 44 },
-  backBtnMain: { width: 44, height: 44, backgroundColor: '#A7B3B7', borderRadius: 12, borderWidth: 3, borderColor: '#000', justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 24, fontWeight: '900', color: '#ffffff' },
-  scrollView: { flex: 1 },
-  scrollContent: { alignItems: 'center', paddingBottom: 40, width: '100%' },
 
-  ghostCardWrapper: { position: 'relative', marginBottom: 15 },
+  headerTitle: { fontSize: 28, fontWeight: '900', color: '#ffffff', marginBottom: 15, marginTop: 10 },
+
+  tabContainer: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  tabButton: { paddingVertical: 8, paddingHorizontal: 20, borderRadius: 12, backgroundColor: '#A7B3B7', borderWidth: 3, borderColor: '#000' },
+  tabActive: { backgroundColor: '#FA73FF' },
+  tabText: { color: '#000', fontWeight: '900', fontSize: 14 },
+
+  scrollView: { flex: 1, width: '100%' },
+  scrollContent: { alignItems: 'center', paddingBottom: 120, width: '100%' },
+
+  infoCardWrapper: { position: 'relative', marginBottom: 20 },
   cardShadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, backgroundColor: '#000', borderRadius: 16 },
-  ghostCard: { backgroundColor: '#9DEEE9', padding: 12, borderRadius: 16, borderWidth: 4, borderColor: '#000', alignItems: 'center' },
-  ghostLabel: { fontSize: 10, fontWeight: '900', color: '#000', letterSpacing: 1 },
-  ghostCharacter: { fontSize: 42, fontWeight: '900', color: '#520D58', marginVertical: 2 },
-  ghostSub: { fontSize: 11, fontWeight: '800', color: 'rgba(0,0,0,0.7)' },
+  infoCard: { backgroundColor: '#A7B3B7', padding: 15, borderRadius: 16, borderWidth: 4, borderColor: '#000', alignItems: 'center' },
+  infoTitle: { fontSize: 14, fontWeight: '900', color: '#000', textTransform: 'uppercase' },
+  infoKana: { fontSize: 16 },
+  infoDesc: { fontSize: 12, fontWeight: '800', color: '#333', marginTop: 4 },
+  
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 12, paddingHorizontal: 10 },
+  statText: { fontSize: 12, fontWeight: '800', color: '#333' },
+  statBold: { fontSize: 14, fontWeight: '900', color: '#000' },
 
   canvasWrapper: { position: 'relative', marginBottom: 20 },
-  canvasBox: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 4, borderColor: '#000', overflow: 'hidden' },
-  svgCanvas: { backgroundColor: '#fff' },
+  canvasBox: { backgroundColor: '#ffffff', borderWidth: 4, borderColor: '#000' },
+  
+  ghostContainer: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff' },
+  ghostText: { fontSize: 250, color: '#EAEAEA', fontWeight: 'bold' },
+  svgLayer: { position: 'absolute', top: 0, left: 0 },
 
-  controlsContainer: { alignItems: 'center', gap: 15 },
-  paletteRow: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
-  colorBubble: { width: 32, height: 32, borderRadius: 16, borderWidth: 3, borderColor: '#000' },
-  selectedColor: { borderWidth: 4, borderColor: '#FFF', transform: [{ scale: 1.15 }] },
+  noteWrapper: { backgroundColor: '#FFD700', padding: 12, borderRadius: 12, borderWidth: 3, borderColor: '#000', marginBottom: 15 },
+  noteText: { color: '#000', fontWeight: '800', fontSize: 12, textAlign: 'center' },
 
-  checkWrapper: { position: 'relative', width: '100%' },
-  checkButton: { backgroundColor: '#9DEEE9', flexDirection: 'row', paddingVertical: 12, borderRadius: 12, borderWidth: 3, borderColor: '#000', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  checkButtonText: { color: '#000', fontWeight: '900', fontSize: 14 },
+  feedbackBanner: { backgroundColor: '#000', paddingVertical: 8, paddingHorizontal: 20, borderRadius: 20, marginBottom: 20 },
+  feedbackText: { fontWeight: '900', fontSize: 14 },
 
-  feedbackCard: { backgroundColor: '#FFD700', padding: 12, borderRadius: 12, borderWidth: 3, borderColor: '#000', marginTop: 5 },
-  feedbackText: { color: '#000', fontWeight: '800', fontSize: 12, textAlign: 'center' }
+  actionRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
+  actionBtnWrapper: { position: 'relative', flex: 1 },
+  actionBtn: { paddingVertical: 14, borderRadius: 12, borderWidth: 4, borderColor: '#000', alignItems: 'center' },
+  actionBtnText: { color: '#000', fontWeight: '900', fontSize: 16 }
 });

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator, SafeAreaView, Dimensions, TouchableOpacity, ScrollView, TextInput, Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 
@@ -10,7 +11,8 @@ const canvasSize = (Platform.OS === 'web' ? 680 : width) - 40;
 const PAGE_SIZE = 15;
 
 export default function VocabScreen() {
-  const [selectedLevel, setSelectedLevel] = useState<string>('ALL');
+  const params = useLocalSearchParams<{ filterLevel?: string }>();
+  const [selectedLevel, setSelectedLevel] = useState<string>(params.filterLevel || 'ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [displayedData, setDisplayedData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -50,9 +52,11 @@ export default function VocabScreen() {
     updateDisplayList(selectedLevel, text);
   };
 
-  useEffect(() => {
-    updateDisplayList('ALL', '');
-  }, []);
+useEffect(() => {
+  const initialLevel = params.filterLevel || 'ALL';
+  setSelectedLevel(initialLevel);
+  updateDisplayList(initialLevel, '');
+}, [params.filterLevel]);
 
   const getFilteredPool = () => {
     return safeData.filter((item: any) => {

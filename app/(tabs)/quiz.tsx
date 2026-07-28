@@ -1,4 +1,5 @@
 import { Audio } from 'expo-av';
+import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
@@ -45,8 +46,11 @@ export default function QuizScreen() {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isFinished, setIsFinished] = useState<boolean>(false);
 
+  // Animation values
   const bounceAnim = useRef(new Animated.Value(0.8)).current;
   const fireworkAnim = useRef(new Animated.Value(0)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const revealAnim = useRef(new Animated.Value(0)).current;
 
   const currentPool = activeTab === 'hiragana' ? hiraganaPool : katakanaPool;
 
@@ -81,6 +85,7 @@ export default function QuizScreen() {
   const generateQuestion = (pool = currentPool) => {
     setSelectedAnswer(null);
     setIsCorrect(null);
+    revealAnim.setValue(0); // Reset reveal animation for next button
 
     const randomIndex = Math.floor(Math.random() * pool.length);
     const target = pool[randomIndex];
@@ -121,6 +126,16 @@ export default function QuizScreen() {
     }
   }, [isFinished]);
 
+  const triggerShake = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 15, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -15, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true })
+    ]).start();
+  };
+
   const handleAnswerPress = (option: string) => {
     if (selectedAnswer !== null || !currentQuestion) return;
 
@@ -129,18 +144,30 @@ export default function QuizScreen() {
     setIsCorrect(correct);
 
     if (correct) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore((prev) => prev + 1);
       setStreak((prev) => prev + 1);
       playSound('correct');
       Speech.stop();
       Speech.speak(currentQuestion.kana, { language: 'ja-JP'});
     } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerShake();
       setStreak(0);
       playSound('wrong');
     }
+
+    // Smoothly reveal the next button
+    Animated.spring(revealAnim, {
+      toValue: 1,
+      friction: 6,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
   };
 
   const nextQuestion = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (questionCount >= questionLimit) {
       setIsFinished(true);
       playSound('complete');
@@ -160,6 +187,11 @@ export default function QuizScreen() {
     outputRange: [1, 0.7, 0],
   });
 
+  const revealTranslateY = revealAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [20, 0], // Button slides up slightly
+  });
+
   if (!currentQuestion) return null;
 
   return (
@@ -175,14 +207,20 @@ export default function QuizScreen() {
       <View style={styles.tabContainer}>
         <TouchableOpacity 
           style={[styles.tabButton, activeTab === 'hiragana' && styles.tabActive]} 
-          onPress={() => startQuiz('hiragana', questionLimit)}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            startQuiz('hiragana', questionLimit);
+          }}
           activeOpacity={0.8}
         >
           <Text style={[styles.tabText, activeTab === 'hiragana' && styles.textActive]}>Hiragana Quiz</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tabButton, activeTab === 'katakana' && styles.tabActive]} 
-          onPress={() => startQuiz('katakana', questionLimit)}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            startQuiz('katakana', questionLimit);
+          }}
           activeOpacity={0.8}
         >
           <Text style={[styles.tabText, activeTab === 'katakana' && styles.textActive]}>Katakana Quiz</Text>
@@ -196,7 +234,10 @@ export default function QuizScreen() {
           <TouchableOpacity 
             key={num} 
             style={[styles.limitButton, questionLimit === num && styles.limitButtonActive]}
-            onPress={() => startQuiz(activeTab, num)}
+            onPress={() => {
+              Haptics.selectionAsync();
+              startQuiz(activeTab, num);
+            }}
             activeOpacity={0.8}
           >
             <Text style={[styles.limitButtonText, questionLimit === num && styles.limitTextActive]}>{num}</Text>
@@ -220,22 +261,25 @@ export default function QuizScreen() {
               </View>
             </View>
 
-            {/* Question Card */}
-            <View style={[styles.promptWrapper, { width: cardWidth }]}>
+            {/* Question Card with Shake Animation */}
+            <Animated.View style={[styles.promptWrapper, { width: cardWidth, transform: [{ translateX: shakeAnim }] }]}>
               <View style={styles.cardShadow} />
               <View style={styles.promptCard}>
                 <Text style={styles.promptTitle}>WHAT IS THIS {currentQuestion.type.toUpperCase()}?</Text>
                 <Text style={styles.promptTarget}>{currentQuestion.kana}</Text>
               </View>
-            </View>
+            </Animated.View>
 
             {/* Options Grid */}
             <View style={[styles.optionsContainer, { width: cardWidth }]}>
               {options.map((option, index) => {
                 let btnBg = '#A7B3B7';
+                let isTarget = false;
+                
                 if (selectedAnswer !== null) {
                   if (option === currentQuestion.romaji) {
                     btnBg = '#00C853';
+                    isTarget = true;
                   } else if (option === selectedAnswer) {
                     btnBg = '#FF5252';
                   }
@@ -245,21 +289,33 @@ export default function QuizScreen() {
                   <TouchableOpacity 
                     key={index} 
                     style={styles.optionWrapper} 
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                     onPress={() => handleAnswerPress(option)}
                   >
                     <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
-                    <View style={[styles.optionButton, { backgroundColor: btnBg }]}>
+                    <Animated.View 
+                      style={[
+                        styles.optionButton, 
+                        { backgroundColor: btnBg },
+                        // Pulsing effect for the correct answer to draw attention
+                        isTarget && { transform: [{ scale: revealAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.05, 1] }) }] }
+                      ]}
+                    >
                       <Text style={styles.optionText}>{option}</Text>
-                    </View>
+                    </Animated.View>
                   </TouchableOpacity>
                 );
               })}
             </View>
 
-            {/* Feedback & Next Button */}
+            {/* Animated Feedback & Next Button */}
             {selectedAnswer !== null && (
-              <View style={[styles.feedbackContainer, { width: cardWidth }]}>
+              <Animated.View 
+                style={[
+                  styles.feedbackContainer, 
+                  { width: cardWidth, opacity: revealAnim, transform: [{ translateY: revealTranslateY }] }
+                ]}
+              >
                 <Text style={[styles.feedbackText, { color: isCorrect ? '#00E676' : '#FF5252' }]}>
                   {isCorrect ? 'Correct! 🎉' : `Incorrect! It was "${currentQuestion.romaji}" ❌`}
                 </Text>
@@ -270,7 +326,7 @@ export default function QuizScreen() {
                     <Text style={styles.nextButtonText}>{questionCount === questionLimit ? 'See Results ➔' : 'Next Question ➔'}</Text>
                   </View>
                 </TouchableOpacity>
-              </View>
+              </Animated.View>
             )}
           </>
         ) : (
@@ -304,7 +360,14 @@ export default function QuizScreen() {
                   {score === questionLimit ? 'Flawless victory! 🌟' : score >= questionLimit / 2 ? 'Great job practicing! 👍' : 'Keep practicing to improve! 💪'}
                 </Text>
 
-                <TouchableOpacity style={styles.restartWrapper} activeOpacity={0.8} onPress={() => startQuiz(activeTab, questionLimit)}>
+                <TouchableOpacity 
+                  style={styles.restartWrapper} 
+                  activeOpacity={0.8} 
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    startQuiz(activeTab, questionLimit);
+                  }}
+                >
                   <View style={[styles.cardShadow, { top: 4, left: 4 }]} />
                   <View style={styles.restartButton}>
                     <Text style={styles.restartButtonText}>Play Again 🔄</Text>
@@ -355,7 +418,8 @@ const styles = StyleSheet.create({
   limitButtonText: { color: '#000', fontWeight: '900', fontSize: 12 },
   limitTextActive: { color: '#520D58' },
   scrollView: { flex: 1 },
-  scrollContent: { alignItems: 'center', paddingBottom: 40, width: '100%' },
+  // FIX APPLIED HERE: paddingBottom changed to 120 so the Next button clears the tab bar!
+  scrollContent: { alignItems: 'center', paddingBottom: 120, width: '100%' },
 
   scoreRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   scoreBadge: { backgroundColor: '#A7B3B7', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10, borderWidth: 2, borderColor: '#000' },
